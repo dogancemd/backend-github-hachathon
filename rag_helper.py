@@ -72,6 +72,12 @@ def load_voices(profile:str, voice_list):
     if not os.path.exists("./files/"+profile+"/"):
         os.makedirs("./files/"+profile)
     for voice in voice_list:
+        #check if the text file exists
+        if(os.path.exists("./files/"+profile+ "/" +os.path.basename(voice)+".txt")):
+            print("Text file exists")
+            with open("./files/"+profile+ "/" +os.path.basename(voice)+".txt", "r") as f:
+                texts.append(f.read())
+            continue
         text = transcribe_audio(voice)
         #save the text to data/voice_name.txt
         with open("./files/"+profile+ "/" +os.path.basename(voice)+".txt", "w") as f:
