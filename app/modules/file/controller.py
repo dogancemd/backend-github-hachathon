@@ -1,26 +1,22 @@
-from run import app
-from flask import request, flash, redirect, url_for, jsonify
+from messageHandler import app
 import base64
 import os
 import json
 from app.modules.file.helpers import getFileName
 import traceback
+from rag_helper import load_voices
+from app.modules.file.schema import FileRequest
+from app.models.common import UPLOAD_FOLDER
 
-
-
-
-@app.route('/file/<profile>', methods=['POST'])
-def upload_base64(profile: str):
+@app.post('/file/{profile}')
+def upload_base64(profile: str, fileReq: FileRequest):
+    print(FileRequest)
     # Get the JSON data containing the base64 string
-    data = request.get_json()
     
     
-    # Ensure the base64 data exists in the request
-    if 'audio' not in data:
-        return jsonify({"error": "No file data provided"}), 400
     
     # Get the base64 string (assuming it's sent under the 'audio' key)
-    file_data = data['audio']
+    file_data = fileReq.payload
     
     # Optional: If the file is prefixed with a base64 header (e.g., 'data:image/png;base64,...'),
     # remove the prefix if necessary
@@ -31,38 +27,21 @@ def upload_base64(profile: str):
     try:
         file_content = base64.b64decode(file_data)
     except Exception as e:
-        return jsonify({"error": f"Failed to decode base64: {str(e)}"}), 400
+        raise Exception(f"Failed to decode the base64 string: {str(e)}")
     
     # Define a filename (You can customize this or get it from the request)
-    filename = 'uploaded_file.wav'
-    file_path = os.path.join(app.config["UPLOAD_FOLDER"], profile, filename)
-    if not os.path.isdir(os.path.join(app.config["UPLOAD_FOLDER"], profile)):
-        os.mkdir(os.path.join(app.config["UPLOAD_FOLDER"], profile))
+    filename = fileReq.filename
+    file_path = os.path.join(UPLOAD_FOLDER, profile, filename)
+    if not os.path.isdir(os.path.join(UPLOAD_FOLDER, profile)):
+        os.mkdir(os.path.join(UPLOAD_FOLDER, profile))
     # Save the decoded content to a file
     try:
         with open(file_path, 'wb') as file:
             file.write(file_content)
-        return jsonify({"isSucces": True}), 200
+            
+            (profile, [filename])
+        return json.dumps({"isSucces": True})
     except Exception as e:
         print(e)
-        return jsonify({"isSuccess": False, "error": f"Failed to save the file: {str(e)}"}), 500
+        return json.dumps({"isSuccess": False, "error": f"Failed to save the file: {str(e)}"})
 
-
-@app.route('/file/<profile>', methods = ['DELETE'])
-def delete_file(profile:str):
-    try:        
-        filename = request.json.get("filename")
-        file_path = os.path.join(app.config["UPLOAD_FOLDER"], profile, filename)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
-        return app.response_class(
-            response=json.dumps({"isSuccess": True}),
-            status=200,
-            mimetype='application/json'
-        )
-    except Exception as e:
-        return app.response_class(
-            response=json.dumps({"isSuccess": False, "error": str(e)}),
-            status=500,
-            mimetype='application/json'
-        )

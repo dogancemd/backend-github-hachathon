@@ -7,7 +7,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_ollama import OllamaEmbeddings
 from typing_extensions import TypedDict
-from typing import Annotated, List, Sequence
+from typing import Annotated, List, Sequence, Tuple
 from langgraph.graph.message import add_messages
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, AIMessageChunk, BaseMessage, trim_messages
 from langchain_core.documents import Document
@@ -68,9 +68,18 @@ graph_builder.add_conditional_edges(START, need_rag, {True: "rag", False: "chatb
 memory = MemorySaver()
 graph = graph_builder.compile(checkpointer=memory)  
 
-async def stream_graph_updates(user_input: str, total_user_messages: int):
+async def stream_graph_updates(user_input: str, total_user_messages: int, prevMessages: List[Tuple[bool, str]], profile: str):
     config = {"configurable": {"thread_id": "1"}}
-    inputs = {"messages": [("user", user_input)], "similar_docs": rag_helper.get_similar_documents("sagopa", user_input)}
+    messages = []
+    for message in prevMessages:
+        if message[0]:
+            messages.append(HumanMessage(message[1]))
+        else:
+            messages.append(AIMessage(message[1]))
+    messages.append(HumanMessage(user_input))
+    print(messages)
+    inputs = {"messages": messages, "similar_docs": rag_helper.get_similar_documents(profile, user_input)}
+    print(inputs)
     first = True
     total_current_messages = 0
     async for msg, meta in graph.astream(inputs, config=config, stream_mode="messages"):
@@ -79,7 +88,7 @@ async def stream_graph_updates(user_input: str, total_user_messages: int):
             #     print(msg.content, end="", flush=True)
             # else:
             #     total_current_messages += 1
-            print(msg.content, end="", flush=True)
+            yield msg.content
 
         if isinstance(msg, AIMessageChunk):
             if first:

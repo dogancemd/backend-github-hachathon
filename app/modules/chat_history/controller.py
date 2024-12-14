@@ -5,8 +5,7 @@ from app.modules.chat_history.schema import ChatHistoryRequest
 from app.modules.chat_history.helpers import get_chat_history_helper
 
 
-
-@app.get('/chat_history')
+@app.post('/chat_history')
 def get_chat_history(reqParams: ChatHistoryRequest): 
     msgs = get_chat_history_helper(reqParams)
 

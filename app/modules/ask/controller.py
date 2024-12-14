@@ -1,5 +1,3 @@
-
-from fastapi import FastAPI
 from app.modules.ask.helper import askHelper
 from app.modules.ask.schema import AskRequest
 from messageHandler import app

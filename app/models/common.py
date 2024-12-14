@@ -1,2 +1,1 @@
-from bson.objectid import ObjectId as BsonObjectId
-
+UPLOAD_FOLDER = "files"

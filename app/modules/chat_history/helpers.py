@@ -1,11 +1,16 @@
-from app.modules.chat_history.schema import ChatHistoryRequest
+from app.modules.chat_history.schema import ChatHistoryRequest, ChatHistoryResponseMessage
 from app.models.chatMessage.chatMessage import chatMessage  
 from pymongo.database import Database
-from run import mongoManager
-def get_last_n_human_messages(userId: str, profile: str, n: int):
+from messageHandler import mongoManager
+from typing import List
+
+
+def get_last_n_human_messages(userId: str, profile: str, n: int)-> List[ChatHistoryResponseMessage]: 
     messageColl = mongoManager.get_collection(chatMessage)
     messageCollSize = messageColl.count_documents({"userId": userId, "profile": profile, "isHuman": True})
     n = min(n, messageCollSize)
+    if n == 0:
+        return []
     messageCurr = messageColl.aggregate([{"$match": {"userId": userId, "profile": profile, "isHuman": True}},{"$sort": {"dateCreated": -1}}, {"$skip": n-1}, {"$limit": 1}]) 
     result = list()
     isMessage = False
@@ -38,7 +43,7 @@ def get_last_n_messages(userId: str, profile: str, n: int):
             {"$project": {"_id": 0}}
         ])
         for mess in messageCurr:
-            result.append(chatMessage(**mess))
+            result.append(ChatHistoryResponseMessage.from_chat_message(chatMessage(**mess)))
         return result
     else:
         return []

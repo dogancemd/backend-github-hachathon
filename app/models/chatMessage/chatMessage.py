@@ -11,7 +11,7 @@ class chatMessage(CBotBaseModel):
     userId: str
     profile: str
     message: str
-    dateCreated: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    dateCreated: Optional[str] = Field(default_factory=datetime.utcnow().timestamp().__str__)
     isHuman: bool = True 
     
     @classmethod
