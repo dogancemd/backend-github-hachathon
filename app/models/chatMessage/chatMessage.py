@@ -17,6 +17,7 @@ class chatMessage(CBotBaseModel):
     @classmethod
     def get_collection_name(cls):
         return cls.__collection_name__
+        
 
     @classmethod
     def create_collection(db: Database):

@@ -1,19 +1,41 @@
-from run import app
-from flask import request
-import json
-from app.modules.ask.schema import AskRequest
-from app.modules.ask.helper import askHelper
 
-@app.route('/ask', methods=['GET'])
-def ask():
-    reqParams = AskRequest(**{
-        "userId": request.json.get('userId'),
-        "profile": request.json.get('profile'),
-        "message": request.json.get('message')
-    })
-    response = askHelper(reqParams)
-    return app.response_class(
-        response=json.dumps({"message": response}),
-        status=200,
-        mimetype='application/json'
-    )
+from fastapi import FastAPI
+from app.modules.ask.helper import askHelper
+from app.modules.ask.schema import AskRequest
+from messageHandler import app
+import json
+import aio_pika
+
+
+@app.get("/ask")
+async def prompt(askRequest: AskRequest):
+    try:
+        async for answer in askHelper(askRequest):
+            answer_json = {
+                "answer": answer,
+                "userId": askRequest.userId,
+                "is_end": False
+            }
+            body = json.dumps(answer_json)
+            await app.state.channel.default_exchange.publish (
+                aio_pika.Message(body=body.encode()),
+                routing_key="answer_queue"
+            )
+        answer_json = {
+            "userId": askRequest.userId,
+            "is_end": True
+        }
+        body = json.dumps(answer_json)
+        await app.state.channel.default_exchange.publish (
+            aio_pika.Message(body=body.encode()),
+            routing_key="answer_queue"
+        )
+        
+    except Exception as e: 
+        print(e)
+        return {
+            "success" : False,
+            "error": str(e)
+        }
+    
+    return { "success": True }

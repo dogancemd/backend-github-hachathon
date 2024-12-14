@@ -1,4 +1,4 @@
-from run import app
+from messageHandler import app
 from flask import request
 import json
 from app.modules.chat_history.schema import ChatHistoryRequest
@@ -6,12 +6,8 @@ from app.modules.chat_history.helpers import get_chat_history_helper
 
 
 
-@app.route('/chat_history', methods=['GET'])
-def get_chat_history(): 
-    reqParams = ChatHistoryRequest(**{
-        "userId":request.json.get('userId'),
-        "profile":request.json.get('profile')
-        })
+@app.get('/chat_history')
+def get_chat_history(reqParams: ChatHistoryRequest): 
     msgs = get_chat_history_helper(reqParams)
 
     return json.dumps({
