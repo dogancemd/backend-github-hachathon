@@ -7,9 +7,15 @@ import traceback
 from rag_helper import load_voices
 from app.modules.file.schema import FileRequest
 from app.models.common import UPLOAD_FOLDER
+from fastapi import BackgroundTasks
+
+def load_at_bg(profile, filename):
+    load_voices(profile, [filename])
+    print("Loaded voices")
+
 
 @app.post('/file/{profile}')
-def upload_base64(profile: str, fileReq: FileRequest):
+def upload_base64(profile: str, fileReq: FileRequest, background_tasks: BackgroundTasks):
     print(FileRequest)
     # Get the JSON data containing the base64 string
     
@@ -30,7 +36,7 @@ def upload_base64(profile: str, fileReq: FileRequest):
         raise Exception(f"Failed to decode the base64 string: {str(e)}")
     
     # Define a filename (You can customize this or get it from the request)
-    filename = fileReq.filename
+    filename = getFileName(fileReq.filename,profile)
     file_path = os.path.join(UPLOAD_FOLDER, profile, filename)
     if not os.path.isdir(os.path.join(UPLOAD_FOLDER, profile)):
         os.mkdir(os.path.join(UPLOAD_FOLDER, profile))
@@ -38,8 +44,8 @@ def upload_base64(profile: str, fileReq: FileRequest):
     try:
         with open(file_path, 'wb') as file:
             file.write(file_content)
-            
-            (profile, [filename])
+            background_tasks.add_task(load_at_bg, profile = profile, filename=filename)
+            #load_voices(profile, [filename])
         return json.dumps({"isSucces": True})
     except Exception as e:
         print(e)

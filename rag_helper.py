@@ -53,18 +53,29 @@ def load_pdfs(profile, pdf_list):
 
 def load_texts(profile, text_list):
     splitted = []
+    print(text_list)
     for text in text_list:        
-        splitted += text_splitter.split_text(text)
+        splitted.append(text_splitter.split_text(text))
+    splitted = [doc[0] for doc in splitted]
+    print(splitted)
     vector_store = InMemoryVectorStore.from_texts(splitted, OllamaEmbeddings(model="mxbai-embed-large"))
     vectorstores[profile] = vector_store
 
 def getVectorStore(profile:str):
+    print(vectorstores)
+    if(profile not in vectorstores):
+        print("Profile not found")
+        return None
     return vectorstores[profile]
 
-def get_similar_documents(profile:str, query:str, limit:int = 0.5):
+def get_similar_documents(profile:str, query:str, limit:float = 0.3):
     vector_store : InMemoryVectorStore = getVectorStore(profile)
+    if(vector_store is None):
+        return []
     docs = vector_store.similarity_search_with_score(query)
+    print("Found documents:", docs)
     docs = [doc for doc in docs if doc[1] > limit]
+    print("Docs:", docs)
     return docs
 
 def load_voices(profile:str, voice_list):
@@ -77,7 +88,9 @@ def load_voices(profile:str, voice_list):
         if(os.path.exists(os.path.join(UPLOAD_FOLDER,profile,f"{os.path.basename(voice)}.txt"))):
             print("Text file exists")
             with open(os.path.join(UPLOAD_FOLDER,profile,f"{os.path.basename(voice)}.txt"), "r") as f:
+                print(f"Reading text file {os.path.join(UPLOAD_FOLDER,profile,f'{os.path.basename(voice)}.txt')}")
                 texts.append(f.read())
+                print(texts)
             continue
         text = transcribe_audio(os.path.join(UPLOAD_FOLDER,profile,voice))
         #save the text to data/voice_name.txt

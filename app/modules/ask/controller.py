@@ -3,29 +3,31 @@ from app.modules.ask.schema import AskRequest
 from messageHandler import app
 import json
 import aio_pika
+from datetime import datetime
 
-
-@app.get("/ask")
+@app.post("/ask")
 async def prompt(askRequest: AskRequest):
     try:
+        start_character = "[START]"
+        await app.state.channel.default_exchange.publish (
+            aio_pika.Message(body=start_character.encode()),
+            routing_key="answer_queue"
+        )
         async for answer in askHelper(askRequest):
             answer_json = {
-                "answer": answer,
-                "userId": askRequest.userId,
-                "is_end": False
+                "id": askRequest.userId,
+                "timestamp": str(int(datetime.utcnow().timestamp())),
+                "text": answer,
+                "isUser": False
             }
             body = json.dumps(answer_json)
             await app.state.channel.default_exchange.publish (
-                aio_pika.Message(body=body.encode()),
+                aio_pika.Message(body=answer_json.get("text").encode()),
                 routing_key="answer_queue"
             )
-        answer_json = {
-            "userId": askRequest.userId,
-            "is_end": True
-        }
-        body = json.dumps(answer_json)
+        end_character = "[END]"
         await app.state.channel.default_exchange.publish (
-            aio_pika.Message(body=body.encode()),
+            aio_pika.Message(body=end_character.encode()),
             routing_key="answer_queue"
         )
         

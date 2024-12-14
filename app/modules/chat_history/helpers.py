@@ -34,6 +34,8 @@ def get_last_n_messages(userId: str, profile: str, n: int):
     messageColl = mongoManager.get_collection(chatMessage)
     messageCollSize = messageColl.count_documents({"userId": userId, "profile": profile})
     n = min(n, messageCollSize)
+    if n == 0:
+        return []
     messageCurr = messageColl.aggregate([{"$match": {"userId": userId, "profile": profile}},{"$sort": {"dateCreated": -1}}, {"$limit": n}]) 
     result = list()
     for msg in messageCurr:

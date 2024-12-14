@@ -18,7 +18,7 @@ for profile in os.listdir(UPLOAD_FOLDER):
 async def connectRabbitMQ(app):    
     connection = await aio_pika.connect_robust('amqp://localhost',heartbeat=10)
     channel = await connection.channel()
-    channel.declare_queue("answer_queue")
+    await channel.declare_queue("answer_queue")
     app.state.conn, app.state.channel = (connection, channel)
 
 @asynccontextmanager

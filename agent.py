@@ -70,14 +70,15 @@ graph = graph_builder.compile(checkpointer=memory)
 
 async def stream_graph_updates(user_input: str, total_user_messages: int, prevMessages: List[Tuple[bool, str]], profile: str):
     config = {"configurable": {"thread_id": "1"}}
-    messages = []
-    for message in prevMessages:
-        if message[0]:
-            messages.append(HumanMessage(message[1]))
-        else:
-            messages.append(AIMessage(message[1]))
-    messages.append(HumanMessage(user_input))
-    print(messages)
+    # messages = []
+    # for message in prevMessages:
+    #     if message[0]:
+    #         messages.append(HumanMessage(message[1]))
+    #     else:
+    #         messages.append(AIMessage(message[1]))
+    # messages.append(HumanMessage(user_input))
+    # print(messages)
+    messages = [HumanMessage(user_input)]
     inputs = {"messages": messages, "similar_docs": rag_helper.get_similar_documents(profile, user_input)}
     print(inputs)
     first = True
