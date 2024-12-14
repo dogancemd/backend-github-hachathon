@@ -35,11 +35,15 @@ def need_rag(state: State):
     return len(state["similar_docs"]) > 0
 
 def process_context(documents):
-    return "\n".join([doc[0].page_content for doc in documents])
+    context = ""
+    for doc in documents:
+        context +=  f"Title: {doc[0].metadata["title"]}\nContent: {doc[0].page_content} \n\n"
+    return context
 
 async def rag(state: State):
     prompt = PromptTemplate.from_template("""
     You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know.
+    Mention the title of the document that you used to answer the question.
 
     Question: {question} 
 
@@ -68,7 +72,7 @@ graph_builder.add_conditional_edges(START, need_rag, {True: "rag", False: "chatb
 memory = MemorySaver()
 graph = graph_builder.compile(checkpointer=memory)  
 
-async def stream_graph_updates(user_input: str, total_user_messages: int, prevMessages: List[Tuple[bool, str]], profile: str):
+async def stream_graph_updates(user_input: str, total_user_messages: int, prevMessages: List[Tuple[bool, str]] = [], profile: str = "sabahattin"):
     config = {"configurable": {"thread_id": "1"}}
     messages = []
     for message in prevMessages:
@@ -96,9 +100,6 @@ async def stream_graph_updates(user_input: str, total_user_messages: int, prevMe
                 first = False
             else:
                 gathered = gathered + msg
-
-            if msg.tool_call_chunks:
-                print(gathered.tool_calls)
 
 async def main():
     total_user_messages = 0
