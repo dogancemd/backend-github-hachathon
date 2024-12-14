@@ -34,6 +34,9 @@ graph_builder = StateGraph(State)
 def need_rag(state: State):
     return len(state["similar_docs"]) > 0
 
+def process_context(documents):
+    return "\n".join([doc[0].page_content for doc in documents])
+
 async def rag(state: State):
     prompt = PromptTemplate.from_template("""
     You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know.
@@ -44,7 +47,7 @@ async def rag(state: State):
 
     Answer:""")
     state["messages"] = trim_messages(state["messages"], strategy="last", token_counter=ChatGroq(model="llama-3.3-70b-versatile"), max_tokens=45)
-    answer = await llm.ainvoke(prompt.invoke({"question": state["messages"][-1], "context": state["similar_docs"]}))
+    answer = await llm.ainvoke(prompt.invoke({"question": state["messages"][-1].content, "context": process_context(state["similar_docs"])}))
     return {"messages": answer}
 
 async def chatbot(state: State):
@@ -72,10 +75,11 @@ async def stream_graph_updates(user_input: str, total_user_messages: int):
     total_current_messages = 0
     async for msg, meta in graph.astream(inputs, config=config, stream_mode="messages"):
         if msg.content and not isinstance(msg, HumanMessage):
-            if(total_user_messages == total_current_messages):
-                print(msg.content, end="", flush=True)
-            else:
-                total_current_messages += 1
+            # if(total_user_messages == total_current_messages):
+            #     print(msg.content, end="", flush=True)
+            # else:
+            #     total_current_messages += 1
+            print(msg.content, end="", flush=True)
 
         if isinstance(msg, AIMessageChunk):
             if first:
