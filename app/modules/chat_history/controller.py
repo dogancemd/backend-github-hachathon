@@ -1,5 +1,4 @@
 from messageHandler import app
-from flask import request
 import json
 from app.modules.chat_history.schema import ChatHistoryRequest
 from app.modules.chat_history.helpers import get_chat_history_helper

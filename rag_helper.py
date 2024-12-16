@@ -10,10 +10,16 @@ from faster_whisper import WhisperModel
 from app.models.common import UPLOAD_FOLDER
 from langchain_core.documents import Document
 
+# import pytesseract
+# # Set Tesseract OCR executable path if needed
+# pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files (x86)\\Tesseract-OCR\\tesseract.exe"
+# os.environ["OCR_AGENT"] = "tesseract"
+
+
 model_size = "large-v3"
 
-#model = WhisperModel(model_size, device="cuda", compute_type="float16")
-model = WhisperModel(model_size, device="cpu")
+model = WhisperModel(model_size, device="cuda", compute_type="float16")
+#model = WhisperModel(model_size, device="cpu")
 
 def transcribe_audio(audio_path):
     text = ""
@@ -33,24 +39,30 @@ text_splitter = RecursiveCharacterTextSplitter(
 
 def load_pdfs(profile, pdf_list):
     docs = []
+    print("Loading pdfs:", pdf_list)
     for pdf_path in pdf_list:
+        pdf_path = os.path.join(UPLOAD_FOLDER,profile,pdf_path)
         if(os.path.exists(pdf_path+".pkl")):
             print("Loading pickled file")
             with open(pdf_path+".pkl", "rb") as f:
                 docs.append(pickle.load(f)[0])
             continue
         loader = UnstructuredPDFLoader(
-        infer_table_structure = True,
-        file_path=pdf_path,
+        file_path=os.path.abspath(pdf_path),
         strategy="hi_res",
         )
         for doc in loader.load_and_split(text_splitter=text_splitter):
-            docs.append(doc)
+            docs.append(Document(doc.page_content, metadata={"title": os.path.basename(pdf_path)}))
         #pickle the file
         with open(pdf_path+".pkl", "wb") as f:
             pickle.dump(docs, f)
-    vector_store = InMemoryVectorStore.from_documents(docs, OllamaEmbeddings(model="mxbai-embed-large"))
-    vectorstores[profile] = vector_store
+    if(profile not in vectorstores):
+        vector_store = InMemoryVectorStore.from_documents(docs, OllamaEmbeddings(model="mxbai-embed-large"))
+        vectorstores[profile] = vector_store
+    else:
+        print("Adding doc for profile, doc:", profile, docs)
+        vector_store = vectorstores[profile]
+        InMemoryVectorStore.add_documents(vector_store, docs)
 
 def getVectorStore(profile:str):
     print(vectorstores)
@@ -80,18 +92,30 @@ def load_voices(profile:str, voice_list):
             print("Pickle file exists")
             with open(os.path.join(UPLOAD_FOLDER,profile,f"{os.path.basename(voice)}.pkl"), "rb") as f:
                 prev_documents = pickle.load(f)
+                print("Previous documents:", prev_documents)
                 documents.append(prev_documents[0])
             continue
         text = transcribe_audio(os.path.join(UPLOAD_FOLDER,profile,voice))
         #save the text to data/voice_name.txt
+        print("Transcribed text:", text)
         splitted = text_splitter.split_text(text)
         for i, split in enumerate(splitted):
             documents.append(Document(split, metadata={"title":f"{os.path.basename(voice)}"}))
         #pickle the file
         with open(os.path.join(UPLOAD_FOLDER,profile,f"{os.path.basename(voice)}.pkl"), "wb") as f:
             pickle.dump(documents, f)
-    vector_store = InMemoryVectorStore.from_documents(documents, OllamaEmbeddings(model="mxbai-embed-large"))
-    vectorstores[profile] = vector_store
+    print("Documents:", documents)
+    print("Profile:", profile)
+    if(profile not in vectorstores):
+        vector_store = InMemoryVectorStore.from_documents(documents, OllamaEmbeddings(model="mxbai-embed-large"))
+        vectorstores[profile] = vector_store
+    else:
+        vector_store = getVectorStore(profile)
+        if (type(vector_store) == list):
+            vector_store = vector_store[0]
+        InMemoryVectorStore.add_documents(vector_store, documents)
+    
+
 
 
 #load_pdfs("profile1", glob.glob("./data/*.pdf"))

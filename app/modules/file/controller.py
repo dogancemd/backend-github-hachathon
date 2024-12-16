@@ -4,15 +4,19 @@ import os
 import json
 from app.modules.file.helpers import getFileName
 import traceback
-from rag_helper import load_voices
+from rag_helper import load_voices, load_pdfs
 from app.modules.file.schema import FileRequest
 from app.models.common import UPLOAD_FOLDER
 from fastapi import BackgroundTasks
 
 def load_at_bg(profile, filename):
-    load_voices(profile, [filename])
-    print("Loaded voices")
-
+    if filename.endswith(".mp3"):
+        load_voices(profile, [filename])
+        print("Loaded voices")
+    elif filename.endswith(".pdf"):
+        load_pdfs(profile, [filename])
+        print("Loaded pdfs")
+    
 
 @app.post('/file/{profile}')
 def upload_base64(profile: str, fileReq: FileRequest, background_tasks: BackgroundTasks):

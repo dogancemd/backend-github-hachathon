@@ -5,6 +5,6 @@ def getFileName(filename, profile):
     file_num = 0
     if os.path.exists(os.path.join(UPLOAD_FOLDER, profile)):
         files = os.listdir(os.path.join(UPLOAD_FOLDER, profile))
-        file_num = len(files)
+        file_num = len(files)/2
 
     return split[0] + "_" + str(file_num) + "." + split[1]

@@ -34,6 +34,7 @@ async def echo(websocket):
 
 async def produce(body):
     print("Producing")
+    print(body)
     for socket in sockets:
         await socket.send(body)
 
